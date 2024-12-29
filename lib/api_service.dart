@@ -3,20 +3,37 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  Future<List<dynamic>> fetchPhotos() async {
+  final String apiKey = 'c27737f0a01bbe157d14def5bac7ed59';
+  final String apiUrl = 'https://api.openweathermap.org/data/2.5/weather';
+
+  Future<Map<String, dynamic>> fetchWeather(String city) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? cachedData = prefs.getString('photos');
+    String? cachedData = prefs.getString('weather_$city');
+
     if (cachedData != null) {
-      return jsonDecode(cachedData);
+      return json.decode(cachedData);
     } else {
-      final response = await http
-          .get(Uri.parse('https://jsonplaceholder.typicode.com/photos'));
+      final response = await http.get(
+        Uri.parse('$apiUrl?q=$city&appid=$apiKey&units=metric'),
+      );
+
       if (response.statusCode == 200) {
-        prefs.setString('photos', response.body);
+        prefs.setString('weather_$city', response.body);
         return json.decode(response.body);
       } else {
-        throw Exception('Failed to load photos');
+        throw Exception('Failed to load weather data');
       }
     }
+  }
+
+  double calculateAverageTemperature(Map<String, dynamic> weatherData) {
+    double totalTemperature = 0;
+    int count = 1;
+
+    if (weatherData['main'] != null) {
+      totalTemperature += weatherData['main']['temp'];
+    }
+
+    return count > 0 ? totalTemperature / count : 0;
   }
 }
